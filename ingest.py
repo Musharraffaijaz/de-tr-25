@@ -80,3 +80,42 @@ display(telemetry_df)
 
 # COMMAND ----------
 
+# Synapse connection details
+synapse_workspace =
+synapse_pool =
+synapse_user = '
+synapse_password = ''
+synapse_jdbc_url =
+
+temp_storage_account =
+temp_container =
+temp_dir = f"abfss://{temp_container}@{temp_storage_account}.dfs.core.windows.net/synapse-dbx-staging"
+
+# Source and Target table names
+source_table =
+target_catalog =
+target_schema =
+target_table_name = f"{target_catalog}.{target_schema}.iot_syn"
+
+
+print(f"Reading data from Synapse table: {source_table}...")
+df = (spark.read
+  .format("com.microsoft.sqlserver.jdbc.spark") # Use the Synapse connector
+  .option("url", synapse_jdbc_url)
+  .option("dbtable", source_table)
+  .option("user", synapse_user)
+  .option("password", synapse_password)
+  .option("tempDir", temp_dir) # Crucial for performance
+  .option("forwardSparkAzureStorageCredentials", "true")
+  .load()
+)
+
+# Write the data as a Delta table in Databricks
+print(f"Writing data to Delta table: {target_table_name}...")
+(df.write
+   .format("delta")
+   .mode("overwrite")
+   .saveAsTable(target_table_name)
+)
+
+print("Import complete!")

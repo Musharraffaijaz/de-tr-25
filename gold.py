@@ -37,7 +37,7 @@ base_df = (base_df
           )
 
 # -----------------------------
-# 1) KPI: Daily and Monthly Sales per Region
+# KPI: Daily and Monthly Sales per Region
 # -----------------------------
 print("Creating sales KPIs per region...")
 
@@ -66,7 +66,7 @@ monthly_sales = (base_df
  .saveAsTable(f"{GOLD_SCHEMA}.monthly_sales_by_region"))
 
 # -----------------------------
-# 2) KPI: Device Anomaly Trend per Store
+# KPI: Device Anomaly Trend per Store
 # -----------------------------
 print("Creating device anomaly trend KPI...")
 
@@ -82,7 +82,7 @@ anomaly_trend = (base_df
  .saveAsTable(f"{GOLD_SCHEMA}.daily_anomaly_trend_by_store"))
 
 # -----------------------------
-# 3) KPI: Conversion Rate Impact from Device Failures
+# KPI: Conversion Rate Impact from Device Failures
 # -----------------------------
 print("Creating conversion rate impact KPI...")
 
@@ -101,7 +101,7 @@ daily_impact = (base_df
  .saveAsTable(f"{GOLD_SCHEMA}.daily_conversion_impact_by_store"))
 
 # -----------------------------
-# 4) Enrichment: Tag Stores into Performance Tiers
+# Enrichment: Tag Stores into Performance Tiers
 # -----------------------------
 print("Enriching stores with performance tiers...")
 
@@ -123,7 +123,7 @@ store_tiers = store_ranks.withColumn("performance_tier",
  .saveAsTable(f"{GOLD_SCHEMA}.monthly_store_performance_tiers"))
 
 # -----------------------------
-# 5) Enrichment: Compute Weighted Sales vs. Anomalies Score
+# Enrichment: Compute Weighted Sales vs. Anomalies Score
 # -----------------------------
 print("Enriching stores with a weighted performance score...")
 
@@ -166,7 +166,7 @@ print("\n--- Gold Layer Generation Complete ---")
 
 # COMMAND ----------
 
-# Configuration
+
 CATALOG = "sagar_cat_project1"
 GOLD_SCHEMA = f"{CATALOG}.gold"
 
@@ -180,31 +180,27 @@ gold_tables = [
     "monthly_store_weighted_score"
 ]
 
-# Loop through the list and display each table
 for table_name in gold_tables:
     full_table_name = f"{GOLD_SCHEMA}.{table_name}"
     print(f"--- Displaying contents of: {full_table_name} ---")
     
-    # Use display() for a rich, interactive table view in Databricks notebooks
+
     display(spark.table(full_table_name).head(5))
 
 # COMMAND ----------
 
-# 1. Configuration for the Silver layer
+
 CATALOG = "sagar_cat_project1"
 SILVER_SCHEMA = f"{CATALOG}.silver"
 
-# 2. List of tables in your Silver schema based on the image
+
 silver_tables = [
     "iot_cleaned",
     "iot_cleaned_partitionbyregion",
     "iot_cleaned_zorder"
 ]
 
-# 3. Loop through the list and display each table
 for table_name in silver_tables:
     full_table_name = f"{SILVER_SCHEMA}.{table_name}"
     print(f"--- Displaying top 5 rows of: {full_table_name} ---")
-    
-    # Load the table and display the first 5 rows
     display(spark.table(full_table_name).limit(10))

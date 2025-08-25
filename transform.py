@@ -2,11 +2,10 @@
 #data cleaning and deduplication
 from pyspark.sql import functions as F
 
-# Load bronze tables
 df_iot = spark.table("sagar_cat_project1.bronze.adls_ingested_iot")
 df_sales = spark.table("sagar_cat_project1.bronze.iot_telemetry")
 
-# Handle nulls (example: replace missing Product/DeviceType with "Unknown")
+# Handle nulls
 df_sales = df_sales.fillna({"Product": "Unknown"})
 df_iot = df_iot.fillna({"DeviceStatus": "UNKNOWN"})
 
@@ -45,16 +44,13 @@ df_final = df_joined.withColumn(
     F.when(F.col("i.AnomalyFlag") == 1, 1).otherwise(0)
 )
 
-# 2. Normalize store IDs (e.g., "Store-001" → 1)
-# CORRECTED: F.regexp_replace requires a Column object (F.col(...)) as its first argument.
+# Normalize store IDs (e.g., "Store-001" → 1)
 df_final = df_final.withColumn(
     "StoreID_norm", 
     F.regexp_replace(F.col("s.StoreID"), "Store-", "").cast("int")
 )
 
-# 3. Normalize product categories
-# IMPROVED: The map should only contain products from the sales data ('s.Product').
-# Mixing in device types would result in nulls for actual products.
+#  Normalize product categories
 product_map = {
     "Mobile": "Electronics",
     "Laptop": "Electronics",
@@ -63,7 +59,7 @@ product_map = {
     "Smartwatch": "Wearables"
 }
 
-# A slightly cleaner way to create the mapping expression
+
 mapping_expr = F.create_map([F.lit(x) for x in chain(*product_map.items())])
 
 df_final = df_final.withColumn(
@@ -117,16 +113,15 @@ df_cleaned.write.format("delta").mode("overwrite").option("mergeSchema", "true")
 
 from pyspark.sql import functions as F
 
-# 1. Configuration
 CATALOG = "sagar_cat_project1"
 SCHEMA = "silver"
 TABLE_NAME = "iot_cleaned"
 FULL_TABLE_NAME = f"{CATALOG}.{SCHEMA}.{TABLE_NAME}"
 
-# Load the existing Silver table
+
 df = spark.table(FULL_TABLE_NAME)
 
-# 2. Prepare for Partitioning
+# Prepare for Partitioning
 # Create a date column from the OrderTime timestamp to partition by date
 if "order_date" not in df.columns:
     df = df.withColumn("order_date", F.to_date("OrderTime"))
@@ -140,18 +135,17 @@ if "StoreID_norm" in df.columns and "StoreID" not in df.columns:
    .format("delta")
    .mode("overwrite")
    .option("overwriteSchema", "true")
-   .partitionBy("Region", "order_date") # Apply partitioning
-   # CORRECTED: Save back to the original table name to overwrite it
+   .partitionBy("Region", "order_date")
    .saveAsTable('sagar_cat_project1.silver.iot_cleaned_zorder')
 )
 
 print("Table successfully rewritten with new partitions.")
 
-# 4. Apply Z-Ordering via the OPTIMIZE command
+# Apply Z-Ordering via the OPTIMIZE command
 # This step physically reorganizes the data within the new partitions
 print("Applying Z-Ordering on StoreID and ProductCategory...")
 
-# CORRECTED: The OPTIMIZE command now runs on the newly partitioned table
+
 spark.sql(f"""
   OPTIMIZE {'sagar_cat_project1.silver.iot_cleaned_zorder'}
   ZORDER BY (StoreID, ProductCategory)
@@ -159,7 +153,7 @@ spark.sql(f"""
 
 print("Z-Ordering complete.")
 
-# 5. (Optional but Recommended) Verify the changes
+# Verify the changes
 print("\nVerifying table properties...")
 display(spark.sql(f"DESCRIBE DETAIL {FULL_TABLE_NAME}"))
 
@@ -167,7 +161,6 @@ display(spark.sql(f"DESCRIBE DETAIL {FULL_TABLE_NAME}"))
 
 from pyspark.sql import functions as F
 
-# 1. Configuration
 CATALOG = "sagar_cat_project1"
 SCHEMA = "silver"
 TABLE_NAME = "iot_cleaned"
@@ -187,7 +180,7 @@ df = spark.table(FULL_TABLE_NAME)
 
 print("Table successfully rewritten and partitioned by Region.")
 
-# 3. (Recommended) Verify the partitioning
+# Verify the partitioning
 print("\nVerifying table properties...")
 display(spark.sql(f"DESCRIBE DETAIL {FULL_TABLE_NAME}"))
 
